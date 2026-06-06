@@ -1,0 +1,110 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // -------------------------------------------------------------------------
+    // GLOBALS
+    // -------------------------------------------------------------------------
+    
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+    
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+    
+    function incoming() {
+      return request.resource.data;
+    }
+    
+    function existing() {
+      return resource.data;
+    }
+
+    // -------------------------------------------------------------------------
+    // VALIDATORS
+    // -------------------------------------------------------------------------
+
+    function isValidBusinessProfile(data) {
+      return data.userId == request.auth.uid;
+    }
+
+    function isValidCustomer(data) {
+      return data.userId == request.auth.uid;
+    }
+
+    function isValidMilkPrice(data) {
+      return data.userId == request.auth.uid;
+    }
+
+    function isValidDelivery(data) {
+      return data.userId == request.auth.uid;
+    }
+
+    function isValidPayment(data) {
+      return data.userId == request.auth.uid;
+    }
+
+    // -------------------------------------------------------------------------
+    // CATCH-ALL
+    // -------------------------------------------------------------------------
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // -------------------------------------------------------------------------
+    // ROUTES
+    // -------------------------------------------------------------------------
+
+    match /profiles/{userId} {
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidBusinessProfile(incoming());
+      allow update: if isOwner(userId) && isValidBusinessProfile(incoming()) 
+        && incoming().userId == existing().userId;
+    }
+
+    match /customers/{customerId} {
+      allow get: if isSignedIn() && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidCustomer(incoming());
+      allow update: if isSignedIn() && existing().userId == request.auth.uid 
+        && isValidCustomer(incoming())
+        && incoming().userId == existing().userId;
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+    }
+
+    match /milk_prices/{priceId} {
+      allow get: if isSignedIn() && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidMilkPrice(incoming());
+      allow update: if isSignedIn() && existing().userId == request.auth.uid 
+        && isValidMilkPrice(incoming())
+        && incoming().userId == existing().userId;
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+    }
+
+    match /deliveries/{deliveryId} {
+      allow get: if isSignedIn() && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidDelivery(incoming());
+      allow update: if isSignedIn() && existing().userId == request.auth.uid 
+        && isValidDelivery(incoming())
+        && incoming().userId == existing().userId;
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+    }
+
+    match /payments/{paymentId} {
+      allow get: if isSignedIn() && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidPayment(incoming());
+      allow update: if isSignedIn() && existing().userId == request.auth.uid 
+        && isValidPayment(incoming())
+        && incoming().userId == existing().userId;
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+    }
+  }
+}

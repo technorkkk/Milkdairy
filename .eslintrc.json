@@ -1,0 +1,12 @@
+{
+  "plugins": ["@firebase/security-rules"],
+  "overrides": [
+    {
+      "files": ["firestore.rules"],
+      "parser": "@firebase/eslint-plugin-security-rules/parser",
+      "rules": {
+        "@firebase/security-rules/no-bit-wise": "error"
+      }
+    }
+  ]
+}

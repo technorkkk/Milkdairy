@@ -1,0 +1,8 @@
+{
+  "name": "Milk Dairy",
+  "description": "Premium dairy management app for tracking deliveries, payments, and invoices.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

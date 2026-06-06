@@ -1,0 +1,99 @@
+{
+  "entities": {
+    "BusinessProfile": {
+      "title": "Business Profile",
+      "description": "Details of the dairy business",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "dairyName": { "type": "string" },
+        "ownerName": { "type": "string" },
+        "phone": { "type": "string" },
+        "address": { "type": "string" },
+        "theme": { "type": "string", "enum": ["dark", "light"] }
+      },
+      "required": ["userId", "dairyName", "ownerName"]
+    },
+    "Customer": {
+      "title": "Customer",
+      "description": "Milk delivery customer",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "address": { "type": "string" },
+        "dailyQuantity": { "type": "number" },
+        "milkType": { "type": "string" },
+        "deliverySchedule": { "type": "string" },
+        "customPrice": { "type": "number" },
+        "isActive": { "type": "boolean" },
+        "totalOutstanding": { "type": "number" }
+      },
+      "required": ["userId", "name", "dailyQuantity", "milkType"]
+    },
+    "MilkPrice": {
+      "title": "Milk Price",
+      "description": "Standard prices for milk types",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "type": { "type": "string" },
+        "pricePerLiter": { "type": "number" },
+        "effectiveDate": { "type": "string" }
+      },
+      "required": ["userId", "type", "pricePerLiter"]
+    },
+    "Delivery": {
+      "title": "Delivery",
+      "description": "Daily milk delivery record",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "customerId": { "type": "string" },
+        "date": { "type": "string" },
+        "time": { "type": "string" },
+        "quantity": { "type": "number" },
+        "delivered": { "type": "boolean" },
+        "skipReason": { "type": "string" },
+        "priceAtTime": { "type": "number" }
+      },
+      "required": ["userId", "customerId", "date", "quantity", "delivered"]
+    },
+    "Payment": {
+      "title": "Payment",
+      "description": "Customer payment record",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "customerId": { "type": "string" },
+        "amount": { "type": "number" },
+        "date": { "type": "string" },
+        "mode": { "type": "string" }
+      },
+      "required": ["userId", "customerId", "amount", "date", "mode"]
+    }
+  },
+  "firestore": {
+    "profiles/{userId}": {
+      "schema": "BusinessProfile",
+      "description": "Singleton user business profile"
+    },
+    "customers": {
+      "schema": "Customer",
+      "description": "Main customer list"
+    },
+    "milk_prices": {
+      "schema": "MilkPrice",
+      "description": "Historical and current milk prices"
+    },
+    "deliveries": {
+      "schema": "Delivery",
+      "description": "Daily delivery logs"
+    },
+    "payments": {
+      "schema": "Payment",
+      "description": "Payment logs"
+    }
+  }
+}
