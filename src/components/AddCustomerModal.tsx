@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, User, Phone, MapPin, Calendar, X, Check, EyeOff, Sparkles, HelpCircle, History, RefreshCw } from 'lucide-react';
+import { Plus, User, Phone, MapPin, Calendar, Sparkles, History } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
 import { Input } from './ui/input';

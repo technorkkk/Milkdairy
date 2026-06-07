@@ -142,7 +142,8 @@ export const subscribeToCustomers = (userId: string, callback: (data: any[]) => 
   return onSnapshot(q, (snapshot) => {
     callback(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
   }, (error) => {
-    handleFirestoreError(error, OperationType.LIST, path);
+    // Log error instead of throwing to avoid unhandled exception in listener
+    console.error('Firestore subscription error:', error);
   });
 };
 

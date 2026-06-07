@@ -7,7 +7,6 @@ import {
   Download, 
   X,
   Milk,
-  Wallet,
   CheckCircle2,
   XCircle,
   Printer

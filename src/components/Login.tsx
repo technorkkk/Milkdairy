@@ -11,7 +11,7 @@ import {
   Zap,
   Globe
 } from 'lucide-react';
-import { motion, useScroll, useTransform } from 'motion/react';
+import { motion } from 'motion/react';
 import { Button } from './ui/button';
 import { loginWithGoogle } from '../lib/data';
 import { toast } from 'sonner';

@@ -3,15 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
-  BarChart3, 
-  Users, 
   Truck, 
-  Receipt, 
-  Settings, 
-  Bell, 
   CircleDollarSign, 
   Menu 
 } from 'lucide-react';
@@ -30,7 +25,7 @@ import { Login } from './components/Login';
 import { BusinessSetup } from './components/BusinessSetup';
 import { toast } from 'sonner';
 import { logout as firebaseLogout, cleanupOldData } from './lib/data';
-import { LogOut, Power } from 'lucide-react';
+import { Power } from 'lucide-react';
 
 function SplashScreen() {
   return (

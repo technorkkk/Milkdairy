@@ -23,7 +23,7 @@ app.post("/api/insights", async (req, res) => {
     });
     
     const response = await genAI.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.0-flash",
       contents: `Based on this dairy delivery data: ${JSON.stringify(data)}, provide 3 short bullet points of business insights or optimizations. Keep it professional and encouraging.`
     });
 

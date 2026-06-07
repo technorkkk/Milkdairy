@@ -1,5 +1,11 @@
 import { supabase } from './supabase';
 
+// Guard: ensure supabase client is available before any operation
+const ensureSupabase = () => {
+  if (!supabase) throw new Error('Supabase is not configured. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables.');
+  return supabase;
+};
+
 // Helper to handle errors
 const handleError = (error: any) => {
   console.error('Supabase Error:', error);
@@ -8,7 +14,8 @@ const handleError = (error: any) => {
 
 // Profiles
 export const getBusinessProfile = async (userId: string) => {
-  const { data, error } = await supabase
+  const db = ensureSupabase();
+  const { data, error } = await db
     .from('profiles')
     .select('*')
     .eq('user_id', userId)
@@ -25,7 +32,8 @@ export const getBusinessProfile = async (userId: string) => {
 };
 
 export const saveBusinessProfile = async (userId: string, profile: any) => {
-  const { error } = await supabase
+  const db = ensureSupabase();
+  const { error } = await db
     .from('profiles')
     .upsert({ 
       user_id: userId,
@@ -40,7 +48,8 @@ export const saveBusinessProfile = async (userId: string, profile: any) => {
 
 // Customers
 export const getCustomers = async (userId: string) => {
-  const { data, error } = await supabase
+  const db = ensureSupabase();
+  const { data, error } = await db
     .from('customers')
     .select('*')
     .eq('user_id', userId);
@@ -60,8 +69,9 @@ export const getCustomers = async (userId: string) => {
 };
 
 export const subscribeToCustomers = (userId: string, callback: (data: any[]) => void) => {
+  const db = ensureSupabase();
   const fetchAndMap = async () => {
-    const { data } = await supabase
+    const { data } = await db
       .from('customers')
       .select('*')
       .eq('user_id', userId);
@@ -83,7 +93,7 @@ export const subscribeToCustomers = (userId: string, callback: (data: any[]) => 
   fetchAndMap();
 
   // Subscription
-  const channel = supabase
+  const channel = db
     .channel('customers_db_changes')
     .on(
       'postgres_changes',
@@ -93,12 +103,13 @@ export const subscribeToCustomers = (userId: string, callback: (data: any[]) => 
     .subscribe();
 
   return () => {
-    supabase.removeChannel(channel);
+    db.removeChannel(channel);
   };
 };
 
 export const addCustomer = async (userId: string, customer: any) => {
-  const { data, error } = await supabase
+  const db = ensureSupabase();
+  const { data, error } = await db
     .from('customers')
     .insert([{ 
       user_id: userId,
@@ -120,7 +131,8 @@ export const addCustomer = async (userId: string, customer: any) => {
 };
 
 export const updateCustomer = async (userId: string, customerId: string, updates: any) => {
-  const { error } = await supabase
+  const db = ensureSupabase();
+  const { error } = await db
     .from('customers')
     .update(updates)
     .eq('id', customerId)
@@ -130,7 +142,8 @@ export const updateCustomer = async (userId: string, customerId: string, updates
 };
 
 export const deleteCustomer = async (userId: string, customerId: string) => {
-  const { error } = await supabase
+  const db = ensureSupabase();
+  const { error } = await db
     .from('customers')
     .delete()
     .eq('id', customerId)
@@ -140,8 +153,9 @@ export const deleteCustomer = async (userId: string, customerId: string) => {
 };
 
 export const recordPayment = async (userId: string, customerId: string, amount: number) => {
+  const db = ensureSupabase();
   // 1. Get current customer
-  const { data: customer, error: fetchError } = await supabase
+  const { data: customer, error: fetchError } = await db
     .from('customers')
     .select('total_outstanding')
     .eq('id', customerId)
@@ -153,7 +167,7 @@ export const recordPayment = async (userId: string, customerId: string, amount: 
   // 2. Update outstanding balance
   const nextOutstanding = (customer.total_outstanding || 0) - amount;
   
-  const { error: updateError } = await supabase
+  const { error: updateError } = await db
     .from('customers')
     .update({ 
       total_outstanding: nextOutstanding,
@@ -164,7 +178,7 @@ export const recordPayment = async (userId: string, customerId: string, amount: 
   if (updateError) handleError(updateError);
 
   // 3. Record in payments table
-  const { error: paymentError } = await supabase
+  const { error: paymentError } = await db
     .from('payments')
     .insert([{
       user_id: userId,
@@ -178,7 +192,8 @@ export const recordPayment = async (userId: string, customerId: string, amount: 
 };
 
 export const getMilkPrices = async (userId: string) => {
-  const { data, error } = await supabase
+  const db = ensureSupabase();
+  const { data, error } = await db
     .from('milk_prices')
     .select('*')
     .eq('user_id', userId);
@@ -193,7 +208,8 @@ export const getMilkPrices = async (userId: string) => {
 };
 
 export const saveMilkPrice = async (userId: string, price: any) => {
-  const { error } = await supabase
+  const db = ensureSupabase();
+  const { error } = await db
     .from('milk_prices')
     .upsert({
       id: price.id || undefined,
@@ -207,7 +223,8 @@ export const saveMilkPrice = async (userId: string, price: any) => {
 };
 
 export const deleteMilkPrice = async (priceId: string) => {
-  const { error } = await supabase
+  const db = ensureSupabase();
+  const { error } = await db
     .from('milk_prices')
     .delete()
     .eq('id', priceId);
@@ -216,8 +233,9 @@ export const deleteMilkPrice = async (priceId: string) => {
 };
 
 export const recordDelivery = async (userId: string, delivery: any) => {
+  const db = ensureSupabase();
   // Check if already delivered
-  const { data: existing, error: checkError } = await supabase
+  const { data: existing, error: checkError } = await db
     .from('deliveries')
     .select('id')
     .eq('user_id', userId)
@@ -228,7 +246,7 @@ export const recordDelivery = async (userId: string, delivery: any) => {
   if (checkError) handleError(checkError);
   if (existing) throw new Error("Already delivered today");
 
-  const { error } = await supabase
+  const { error } = await db
     .from('deliveries')
     .insert([{
       user_id: userId,
@@ -243,7 +261,8 @@ export const recordDelivery = async (userId: string, delivery: any) => {
 };
 
 export const getTodaysDeliveries = async (userId: string, date: string) => {
-  const { data, error } = await supabase
+  const db = ensureSupabase();
+  const { data, error } = await db
     .from('deliveries')
     .select('customer_id')
     .eq('user_id', userId)
@@ -254,7 +273,8 @@ export const getTodaysDeliveries = async (userId: string, date: string) => {
 };
 
 export const getCustomerDeliveries = async (userId: string, customerId: string) => {
-  const { data, error } = await supabase
+  const db = ensureSupabase();
+  const { data, error } = await db
     .from('deliveries')
     .select('*')
     .eq('user_id', userId)
@@ -275,7 +295,8 @@ export const getCustomerDeliveries = async (userId: string, customerId: string) 
 };
 
 export const getCustomerPayments = async (userId: string, customerId: string) => {
-  const { data, error } = await supabase
+  const db = ensureSupabase();
+  const { data, error } = await db
     .from('payments')
     .select('*')
     .eq('user_id', userId)
@@ -293,7 +314,8 @@ export const getCustomerPayments = async (userId: string, customerId: string) =>
 };
 
 export const getAllPayments = async (userId: string) => {
-  const { data, error } = await supabase
+  const db = ensureSupabase();
+  const { data, error } = await db
     .from('payments')
     .select('*')
     .eq('user_id', userId);
@@ -310,19 +332,20 @@ export const getAllPayments = async (userId: string) => {
 };
 
 export const resetAllUserData = async (userId: string) => {
-  const { error: paymentsError } = await supabase
+  const db = ensureSupabase();
+  const { error: paymentsError } = await db
     .from('payments')
     .delete()
     .eq('user_id', userId);
   if (paymentsError) handleError(paymentsError);
 
-  const { error: deliveriesError } = await supabase
+  const { error: deliveriesError } = await db
     .from('deliveries')
     .delete()
     .eq('user_id', userId);
   if (deliveriesError) handleError(deliveriesError);
 
-  const { error: customersError } = await supabase
+  const { error: customersError } = await db
     .from('customers')
     .delete()
     .eq('user_id', userId);
@@ -330,23 +353,23 @@ export const resetAllUserData = async (userId: string) => {
 };
 
 export const cleanupOldData = async (userId: string) => {
+  const db = ensureSupabase();
   const fiveMonthsAgo = new Date();
   fiveMonthsAgo.setMonth(fiveMonthsAgo.getMonth() - 5);
   const cutoffDate = fiveMonthsAgo.toISOString();
   const dateOnly = cutoffDate.split('T')[0];
 
-  const { error: deliveryError } = await supabase
+  const { error: deliveryError } = await db
     .from('deliveries')
     .delete()
     .eq('user_id', userId)
     .lt('date', dateOnly);
   if (deliveryError) handleError(deliveryError);
 
-  const { error: paymentError } = await supabase
+  const { error: paymentError } = await db
     .from('payments')
     .delete()
     .eq('user_id', userId)
     .lt('date', cutoffDate);
   if (paymentError) handleError(paymentError);
 };
-
