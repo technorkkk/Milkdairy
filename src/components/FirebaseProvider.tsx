@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { User as SupabaseUser, Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { getBusinessProfile } from '../lib/data';
@@ -45,22 +45,25 @@ const FirebaseContext = createContext<FirebaseContextType>({
 
 export const useFirebase = () => useContext(FirebaseContext);
 
+const AUTH_TIMEOUT_MS = 8000; // 8 second max wait for auth
+
 export function FirebaseProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [profile, setProfile] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchProfile = async (uid: string) => {
+  const fetchProfile = useCallback(async (uid: string) => {
     try {
       const p = await getBusinessProfile(uid);
       setProfile(p);
       setError(null);
     } catch (e: any) {
       console.error("Failed to fetch profile", e);
-      setError(e.message || "Failed to fetch profile");
+      // Don't set error for profile fetch - user might not have profile yet
+      setProfile(null);
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (!supabase) {
@@ -70,10 +73,26 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
+    let mounted = true;
+
+    // Safety timeout: force loading to false after AUTH_TIMEOUT_MS
+    // This prevents the app from getting stuck on splash screen forever
+    const timeoutId = setTimeout(() => {
+      if (mounted && loading) {
+        console.warn('[Auth] Auth check timed out after', AUTH_TIMEOUT_MS, 'ms - forcing loading to false');
+        setLoading(false);
+      }
+    }, AUTH_TIMEOUT_MS);
+
     // Check for existing session first
     const initAuth = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) {
+          console.error('[Auth] Session error:', sessionError);
+        }
+        if (!mounted) return;
+
         const mappedUser = mapSupabaseUser(session?.user ?? null);
         setUser(mappedUser);
         if (mappedUser) {
@@ -81,8 +100,14 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
         }
       } catch (err) {
         console.error('[Auth] Error getting session', err);
+        if (!mounted) return;
+        // Even if session check fails, allow the app to proceed
+        setUser(null);
       } finally {
-        setLoading(false);
+        if (mounted) {
+          clearTimeout(timeoutId);
+          setLoading(false);
+        }
       }
     };
 
@@ -92,6 +117,8 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event: string, session: Session | null) => {
         console.log('[Auth] State changed:', event);
+        if (!mounted) return;
+
         const mappedUser = mapSupabaseUser(session?.user ?? null);
         setUser(mappedUser);
 
@@ -105,13 +132,15 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
     );
 
     return () => {
+      mounted = false;
+      clearTimeout(timeoutId);
       subscription.unsubscribe();
     };
   }, []);
 
-  const refreshProfile = async () => {
+  const refreshProfile = useCallback(async () => {
     if (user) await fetchProfile(user.uid);
-  };
+  }, [user, fetchProfile]);
 
   return (
     <FirebaseContext.Provider value={{ user, profile, loading, error, refreshProfile }}>

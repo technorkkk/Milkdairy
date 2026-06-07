@@ -48,10 +48,32 @@ function SplashScreen() {
   );
 }
 
+// Error fallback when Supabase is not configured or auth fails
+function ErrorScreen({ message }: { message: string }) {
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-[#0B1220] text-white p-6">
+      <div className="w-20 h-20 bg-red-500/20 rounded-3xl flex items-center justify-center mb-6">
+        <Truck className="w-10 h-10 text-red-400" />
+      </div>
+      <h2 className="text-2xl font-black uppercase tracking-tight mb-3">Configuration Required</h2>
+      <p className="text-slate-400 text-center text-sm max-w-md leading-relaxed">{message}</p>
+      <button 
+        onClick={() => window.location.reload()} 
+        className="mt-8 px-6 py-3 bg-white text-slate-900 rounded-2xl font-bold uppercase tracking-wider text-sm hover:bg-slate-100 transition-colors"
+      >
+        Retry
+      </button>
+    </div>
+  );
+}
+
+const SPLASH_TIMEOUT_MS = 10000; // Max 10 seconds on splash screen
+
 export default function App() {
   const { theme } = useStore();
-  const { user, profile, loading: fbLoading } = useFirebase();
+  const { user, profile, loading: fbLoading, error: authError } = useFirebase();
   const [loading, setLoading] = useState(true);
+  const [splashTimedOut, setSplashTimedOut] = useState(false);
 
   useEffect(() => {
     // Sync theme with DOM
@@ -60,14 +82,41 @@ export default function App() {
     } else {
       document.documentElement.classList.remove('dark');
     }
+  }, [theme]);
 
+  // Safety timeout: force loading off after SPLASH_TIMEOUT_MS
+  // This prevents the app from being stuck on the splash screen forever
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (loading || fbLoading) {
+        console.warn('[App] Splash screen timed out - forcing app to load');
+        setLoading(false);
+        setSplashTimedOut(true);
+      }
+    }, SPLASH_TIMEOUT_MS);
+
+    return () => clearTimeout(timeoutId);
+  }, [loading, fbLoading]);
+
+  // Normal loading transition
+  useEffect(() => {
     if (!fbLoading) {
-      const timer = setTimeout(() => setLoading(false), 1000);
+      const timer = setTimeout(() => setLoading(false), 800);
       return () => clearTimeout(timer);
     }
-  }, [theme, fbLoading]);
+  }, [fbLoading]);
 
-  const showLoader = loading || fbLoading;
+  const showLoader = (loading || fbLoading) && !splashTimedOut;
+
+  // If Supabase is not configured, show error screen
+  if (!fbLoading && authError && authError.includes('not configured')) {
+    return (
+      <ThemeProvider>
+        <ErrorScreen message={authError} />
+        <Toaster position="top-center" richColors duration={1000} />
+      </ThemeProvider>
+    );
+  }
 
   return (
     <ThemeProvider>

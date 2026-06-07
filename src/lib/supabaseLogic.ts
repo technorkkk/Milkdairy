@@ -264,12 +264,21 @@ export const getTodaysDeliveries = async (userId: string, date: string) => {
   const db = ensureSupabase();
   const { data, error } = await db
     .from('deliveries')
-    .select('customer_id')
+    .select('*')
     .eq('user_id', userId)
     .eq('date', date);
   
   if (error) handleError(error);
-  return (data || []).map(d => d.customer_id);
+  return (data || []).map(d => ({
+    id: d.id,
+    customerId: d.customer_id,
+    date: d.date,
+    quantity: d.quantity,
+    priceAtTime: d.price_at_time,
+    time: d.time,
+    type: d.type,
+    delivered: d.delivered
+  }));
 };
 
 export const getCustomerDeliveries = async (userId: string, customerId: string) => {
