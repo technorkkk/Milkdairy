@@ -24,7 +24,6 @@ import {
 import { motion } from 'motion/react';
 import { useFirebase } from './FirebaseProvider';
 import { subscribeToCustomers } from '../lib/data';
-import { useStore } from '../types';
 import { AddCustomerModal } from './AddCustomerModal';
 
 const chartData = [
@@ -39,7 +38,6 @@ const chartData = [
 
 export function Dashboard() {
   const { user, profile } = useFirebase();
-  const { setActiveTab } = useStore();
   const [customers, setCustomers] = useState<any[]>([]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [insights, setInsights] = useState<string | null>(null);

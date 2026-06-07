@@ -1,23 +1,21 @@
 import React from 'react';
-import { 
-  LayoutDashboard, 
-  Users, 
-  Truck, 
-  ReceiptIndianRupee, 
-  Settings 
+import {
+  LayoutDashboard,
+  Users,
+  Truck,
+  ReceiptIndianRupee,
+  Settings
 } from 'lucide-react';
-import { useStore } from '../types';
+import { NavLink } from 'react-router-dom';
 import { cn } from '../lib/utils';
 
 export function BottomNav() {
-  const { activeTab, setActiveTab } = useStore();
-
   const navItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'customers', label: 'Customers', icon: Users },
-    { id: 'delivery', label: 'Delivery', icon: Truck },
-    { id: 'billing', label: 'Billing', icon: ReceiptIndianRupee },
-    { id: 'settings', label: 'Settings', icon: Settings },
+    { path: '/home', label: 'Dashboard', icon: LayoutDashboard },
+    { path: '/customer', label: 'Customers', icon: Users },
+    { path: '/delivery', label: 'Delivery', icon: Truck },
+    { path: '/billing', label: 'Billing', icon: ReceiptIndianRupee },
+    { path: '/settings', label: 'Settings', icon: Settings },
   ] as const;
 
   return (
@@ -25,32 +23,37 @@ export function BottomNav() {
       <div className="max-w-lg mx-auto flex justify-between items-center">
         {navItems.map((item) => {
           const Icon = item.icon;
-          const isActive = activeTab === item.id;
-          
+
           return (
-            <button
-              key={item.id}
-              onClick={() => setActiveTab(item.id)}
-              className={cn(
-                "flex flex-col items-center gap-1 px-3 py-1 rounded-2xl transition-all duration-300",
-                isActive 
-                  ? "text-primary scale-110" 
-                  : "text-muted-foreground active:scale-95"
-              )}
+            <NavLink
+              key={item.path}
+              to={item.path}
+              className={({ isActive }) =>
+                cn(
+                  "flex flex-col items-center gap-1 px-3 py-1 rounded-2xl transition-all duration-300",
+                  isActive
+                    ? "text-primary scale-110"
+                    : "text-muted-foreground active:scale-95"
+                )
+              }
             >
-              <div className={cn(
-                "p-2 rounded-xl transition-colors",
-                isActive && "bg-primary/10"
-              )}>
-                <Icon className="w-5 h-5" />
-              </div>
-              <span className={cn(
-                "text-[9px] font-black uppercase tracking-tighter transition-all",
-                isActive ? "text-primary translate-y-0" : "text-muted-foreground translate-y-1 opacity-60"
-              )}>
-                {item.label}
-              </span>
-            </button>
+              {({ isActive }) => (
+                <>
+                  <div className={cn(
+                    "p-2 rounded-xl transition-colors",
+                    isActive && "bg-primary/10"
+                  )}>
+                    <Icon className="w-5 h-5" />
+                  </div>
+                  <span className={cn(
+                    "text-[9px] font-black uppercase tracking-tighter transition-all",
+                    isActive ? "text-primary translate-y-0" : "text-muted-foreground translate-y-1 opacity-60"
+                  )}>
+                    {item.label}
+                  </span>
+                </>
+              )}
+            </NavLink>
           );
         })}
       </div>
