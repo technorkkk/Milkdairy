@@ -9,11 +9,14 @@ import {
   BarChart3, 
   Users,
   Zap,
-  Globe
+  Globe,
+  Mail,
+  Loader2
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Button } from './ui/button';
-import { loginWithGoogle } from '../lib/data';
+import { Input } from './ui/input';
+import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
 
 const FeatureCard = ({ icon: Icon, title, description, index }: any) => (
@@ -33,12 +36,53 @@ const FeatureCard = ({ icon: Icon, title, description, index }: any) => (
 );
 
 export function Login() {
-  const handleLogin = async () => {
+  const [loginMethod, setLoginMethod] = React.useState<'google' | 'email'>('google');
+  const [email, setEmail] = React.useState('');
+  const [sendingLink, setSendingLink] = React.useState(false);
+
+  const handleGoogleLogin = async () => {
+    if (!supabase) {
+      toast.error("Supabase is not configured. Please check your environment variables.");
+      return;
+    }
     try {
-      await loginWithGoogle();
-      toast.success("Welcome back!");
-    } catch (e) {
-      toast.error("Login failed. Please try again.");
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin,
+        },
+      });
+      if (error) throw error;
+    } catch (e: any) {
+      console.error("Google login error", e);
+      toast.error(e.message || "Google login failed. Please try again.");
+    }
+  };
+
+  const handleMagicLinkLogin = async () => {
+    if (!supabase) {
+      toast.error("Supabase is not configured. Please check your environment variables.");
+      return;
+    }
+    if (!email.trim()) {
+      toast.error("Please enter your email address");
+      return;
+    }
+    setSendingLink(true);
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email: email.trim(),
+        options: {
+          emailRedirectTo: window.location.origin,
+        },
+      });
+      if (error) throw error;
+      toast.success("Magic link sent! Check your email inbox.");
+    } catch (e: any) {
+      console.error("Magic link error", e);
+      toast.error(e.message || "Failed to send magic link. Please try again.");
+    } finally {
+      setSendingLink(false);
     }
   };
 
@@ -68,21 +112,83 @@ export function Login() {
           </div>
 
           <div className="space-y-4">
-             <div className="p-[1.5px] rounded-[1.6rem] overflow-hidden gemini-glow-border shadow-xl">
-               <div className="bg-[#0B1220]/95 rounded-[1.5rem] p-1">
-                 <Button 
-                   onClick={handleLogin}
-                   className="w-full h-16 bg-white hover:bg-slate-100 text-slate-900 rounded-[1.3rem] flex items-center justify-center gap-3 text-lg font-black transition-all active:scale-95 cursor-pointer shadow-xl shadow-white/5"
-                 >
-                   <img src="https://www.google.com/favicon.ico" alt="Google" className="w-5 h-5" />
-                   Continue with Google
-                 </Button>
-               </div>
-             </div>
-             
-             <p className="text-center text-[10px] text-slate-500 uppercase tracking-widest leading-relaxed max-w-[280px] mx-auto font-bold opacity-60">
-               Secure login via Google Auth • Privacy Protected
-             </p>
+            {/* Login Method Tabs */}
+            <div className="grid grid-cols-2 p-1 bg-slate-800/50 rounded-2xl">
+              <button
+                onClick={() => setLoginMethod('google')}
+                className={`py-2.5 px-3 rounded-xl transition-all text-xs font-bold uppercase tracking-wider ${
+                  loginMethod === 'google'
+                    ? 'bg-white text-slate-900 shadow-sm'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Google
+              </button>
+              <button
+                onClick={() => setLoginMethod('email')}
+                className={`py-2.5 px-3 rounded-xl transition-all text-xs font-bold uppercase tracking-wider ${
+                  loginMethod === 'email'
+                    ? 'bg-white text-slate-900 shadow-sm'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Email Link
+              </button>
+            </div>
+
+            {loginMethod === 'google' ? (
+              <div className="p-[1.5px] rounded-[1.6rem] overflow-hidden gemini-glow-border shadow-xl">
+                <div className="bg-[#0B1220]/95 rounded-[1.5rem] p-1">
+                  <Button 
+                    onClick={handleGoogleLogin}
+                    className="w-full h-16 bg-white hover:bg-slate-100 text-slate-900 rounded-[1.3rem] flex items-center justify-center gap-3 text-lg font-black transition-all active:scale-95 cursor-pointer shadow-xl shadow-white/5"
+                  >
+                    <img src="https://www.google.com/favicon.ico" alt="Google" className="w-5 h-5" />
+                    Continue with Google
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="relative">
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                  <Input 
+                    type="email"
+                    placeholder="Enter your email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="pl-12 h-14 bg-slate-800/50 border-slate-700 rounded-2xl text-white placeholder:text-slate-500"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleMagicLinkLogin();
+                    }}
+                  />
+                </div>
+                <Button 
+                  onClick={handleMagicLinkLogin}
+                  disabled={sendingLink}
+                  className="w-full h-14 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl flex items-center justify-center gap-3 text-base font-bold transition-all active:scale-95 cursor-pointer shadow-xl shadow-emerald-500/20 disabled:opacity-50"
+                >
+                  {sendingLink ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Sending Link...
+                    </>
+                  ) : (
+                    <>
+                      <Mail className="w-5 h-5" />
+                      Send Magic Link
+                    </>
+                  )}
+                </Button>
+                <p className="text-center text-[10px] text-slate-500">
+                  We'll send a login link to your email. No password needed.
+                </p>
+              </div>
+            )}
+            
+            <p className="text-center text-[10px] text-slate-500 uppercase tracking-widest leading-relaxed max-w-[280px] mx-auto font-bold opacity-60">
+              Secure login via Supabase Auth • Privacy Protected
+            </p>
           </div>
           
           <motion.div 
@@ -149,7 +255,7 @@ export function Login() {
             </div>
             <div className="mt-12">
                <Button 
-                 onClick={handleLogin}
+                 onClick={loginMethod === 'google' ? handleGoogleLogin : handleMagicLinkLogin}
                  variant="ghost" 
                  className="text-slate-400 hover:text-white"
                >
@@ -160,7 +266,7 @@ export function Login() {
       </div>
 
       <footer className="p-12 text-center text-slate-600">
-        <p className="text-[10px] font-bold uppercase tracking-widest">© 2026 MILK DAIRY DIGITAL OS • ALL RIGHTS RESERVED</p>
+        <p className="text-[10px] font-bold uppercase tracking-widest">&copy; 2026 MILK DAIRY DIGITAL OS &bull; ALL RIGHTS RESERVED</p>
       </footer>
     </div>
   );

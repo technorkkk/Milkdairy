@@ -1,15 +1,14 @@
-// This file handles the data layer, prioritizing Supabase as requested by the user.
-// It still uses Firebase Auth for authentication.
+// This file handles the data layer, prioritizing Supabase.
+// Auth is now fully handled by Supabase Auth.
 
-import * as firebaseLogic from './firebaseLogic';
 import * as supabaseLogic from './supabaseLogic';
 import { supabase } from './supabase';
 
-// Switch database based on environment configuration
+// Always use Supabase for data when configured, fallback to supabaseLogic anyway
 const isSupabaseConfigured = !!supabase;
-const dataLayer = isSupabaseConfigured ? supabaseLogic : firebaseLogic;
+const dataLayer = isSupabaseConfigured ? supabaseLogic : supabaseLogic; // Always use Supabase now
 
-console.log(`[DataLayer] Active database provider: ${isSupabaseConfigured ? 'Supabase' : 'Firebase'}`);
+console.log(`[DataLayer] Active database provider: ${isSupabaseConfigured ? 'Supabase' : 'Supabase (not configured - will error)'}`);
 
 export const getBusinessProfile = dataLayer.getBusinessProfile;
 export const saveBusinessProfile = dataLayer.saveBusinessProfile;
@@ -30,5 +29,21 @@ export const resetAllUserData = dataLayer.resetAllUserData;
 export const cleanupOldData = dataLayer.cleanupOldData;
 export const subscribeToCustomers = dataLayer.subscribeToCustomers;
 
-export { loginWithGoogle, logout } from './firebaseLogic';
+// Auth functions - Supabase based
+export const loginWithGoogle = async () => {
+  if (!supabase) throw new Error('Supabase is not configured');
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: window.location.origin,
+    },
+  });
+  if (error) throw error;
+  return data;
+};
 
+export const logout = async () => {
+  if (!supabase) throw new Error('Supabase is not configured');
+  const { error } = await supabase.auth.signOut();
+  if (error) throw error;
+};
